@@ -47,7 +47,9 @@ function getCommandCompletions(input: string): string[] {
 
 export async function getUserInput(): Promise<string | null> {
   try {
-    // First, get input normally
+    // Move cursor up to create space below the input
+    process.stdout.write('\n\n\n\n\n\u001b[5A'); // 5 newlines, then move cursor back up 5 lines
+    
     const answers = await inquirer.prompt({
       type: "input",
       name: "userInput",
@@ -55,29 +57,34 @@ export async function getUserInput(): Promise<string | null> {
       default: getRandomPrompt(),
     });
 
-    let input = (answers.userInput || "").trim();
+    // Move cursor to bottom and clear the extra lines
+    process.stdout.write('\u001b[5B\u001b[K\u001b[K\u001b[K\u001b[K\u001b[K');
+
+    let inputValue = (answers.userInput || "").trim();
 
     // If user starts typing a command, show completions and let them choose
-    if (input.startsWith("/") && input.length > 1) {
-      const completions = getCommandCompletions(input);
+    if (inputValue.startsWith("/") && inputValue.length > 1) {
+      const completions = getCommandCompletions(inputValue);
       if (completions.length > 1) {
         console.log();
-        console.log(`\n💡 Available commands matching "${input}":`);
+        console.log(`\n💡 Available commands matching "${inputValue}":`);
         console.log();
+        
         const commandChoice = await inquirer.prompt({
           type: "list",
           name: "selectedCommand",
           message: "Select a command:",
           choices: [
-            { name: `Continue with: ${input}`, value: input },
+            { name: `Continue with: ${inputValue}`, value: inputValue },
             ...completions.map((cmd) => ({ name: cmd, value: cmd })),
           ],
         });
-        input = commandChoice.selectedCommand;
-      } else if (completions.length === 1 && completions[0] !== input) {
+        inputValue = commandChoice.selectedCommand;
+      } else if (completions.length === 1 && completions[0] !== inputValue) {
         console.log();
         console.log(`💡 Did you mean: ${completions[0]}?`);
         console.log();
+        
         const confirm = await inquirer.prompt({
           type: "confirm",
           name: "useCompletion",
@@ -85,12 +92,12 @@ export async function getUserInput(): Promise<string | null> {
           default: true,
         });
         if (confirm.useCompletion) {
-          input = completions[0];
+          inputValue = completions[0];
         }
       }
     }
 
-    return input;
+    return inputValue;
   } catch (error) {
     console.log(primaryColor("\nGoodbye!"));
     return null;
