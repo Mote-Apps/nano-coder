@@ -41,6 +41,7 @@ export const colors: Colors = {
   error: "#ff6467",
   secondary: "#9ca3af",
   blue: "#8ec6ff",
+  orange: "#FFA500",
 };
 
 export const promptPath = "./src/prompt.md";

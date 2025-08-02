@@ -61,6 +61,7 @@ export interface Colors {
   success: string;
   error: string;
   blue: string;
+  orange: string;
 }
 
 export interface Command {
