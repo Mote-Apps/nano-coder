@@ -8,6 +8,11 @@ import {
 import type { ToolCall, ToolResult } from "../types/index.js";
 import { ollamaConfig } from "../config/index.js";
 
+// Initialize terminal - no modifications needed
+export function initializeTerminal(): void {
+  // Keep simple for now
+}
+
 export function displayWelcome(): void {
   const cwd = process.cwd();
 

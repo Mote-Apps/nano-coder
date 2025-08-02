@@ -47,8 +47,8 @@ function getCommandCompletions(input: string): string[] {
 
 export async function getUserInput(): Promise<string | null> {
   try {
-    // Move cursor up to create space below the input
-    process.stdout.write('\n\n\n\n\n\u001b[5A'); // 5 newlines, then move cursor back up 5 lines
+    // Add bottom margin for main input
+    process.stdout.write('\n\n\n\n\n\u001b[5A');
     
     const answers = await inquirer.prompt({
       type: "input",
@@ -56,9 +56,6 @@ export async function getUserInput(): Promise<string | null> {
       message: "",
       default: getRandomPrompt(),
     });
-
-    // Move cursor to bottom and clear the extra lines
-    process.stdout.write('\u001b[5B\u001b[K\u001b[K\u001b[K\u001b[K\u001b[K');
 
     let inputValue = (answers.userInput || "").trim();
 
