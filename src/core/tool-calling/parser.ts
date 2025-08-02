@@ -52,6 +52,33 @@ export function parseToolCallsFromContent(content: string): ToolCall[] {
     }
   }
 
+  // Look for XML-style tool calls like <execute_bash>
+  const xmlToolCallRegex = /<([a-zA-Z_][a-zA-Z0-9_]*)\s*>\s*\{\s*"?([^"]*)"?\s*:\s*"([^"]*)"\s*\}\s*<\/\1>/g;
+  let xmlMatch;
+  while ((xmlMatch = xmlToolCallRegex.exec(content)) !== null) {
+    const [, toolName, argKey, argValue] = xmlMatch;
+    try {
+      if (toolName && argKey && argValue !== undefined) {
+        const args: { [key: string]: string } = {};
+        args[argKey] = argValue;
+        extractedCalls.push({
+          id: `call_${Date.now()}_${extractedCalls.length}`,
+          function: {
+            name: toolName,
+            arguments: args,
+          },
+        });
+      }
+    } catch (e) {
+      console.error(
+        "🔍 DEBUG - Failed to parse XML tool call:",
+        e,
+        "Tool name:",
+        toolName
+      );
+    }
+  }
+
   // Look for embedded tool calls using regex patterns
   const toolCallPatterns = [
     /\{"name":\s*"([^"]+)",\s*"arguments":\s*(\{[^}]*\})\}/g,
@@ -122,6 +149,10 @@ export function cleanContentFromToolCalls(
   if (toolCalls.length === 0) return content;
 
   let cleanedContent = content;
+
+  // Remove XML-style tool calls
+  const xmlToolCallRegex = /<([a-zA-Z_][a-zA-Z0-9_]*)\s*>\s*\{\s*"?([^"]*)"?\s*:\s*"([^"]*)"\s*\}\s*<\/\1>/g;
+  cleanedContent = cleanedContent.replace(xmlToolCallRegex, "").trim();
 
   // Remove JSON blocks that were parsed as tool calls
   const toolCallPatterns = [

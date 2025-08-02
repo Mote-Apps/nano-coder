@@ -1,6 +1,7 @@
 import inquirer from "inquirer";
 import { commandRegistry } from "../core/commands.js";
-import { primaryColor } from "./colors.js";
+import { primaryColor, successColor, errorColor } from "./colors.js";
+import type { ToolCall } from "../types/index.js";
 
 const examplePrompts = [
   'Try "fix typecheck errors"',
@@ -99,4 +100,30 @@ export async function getUserInput(): Promise<string | null> {
     console.log(primaryColor("\nGoodbye!"));
     return null;
   }
+}
+
+export async function promptToolApproval(toolCall: ToolCall): Promise<boolean> {
+  // Add bottom margin for tool approval input
+  process.stdout.write('\n\n\n\n\n\u001b[5A');
+  
+  const { action } = await inquirer.prompt([
+    {
+      type: "list",
+      name: "action",
+      message: `⚒ ${toolCall.function.name}(${JSON.stringify(
+        toolCall.function.arguments,
+        null
+      )})`,
+      choices: [
+        { name: `${successColor("✓ Yes, execute")}`, value: "execute" },
+        {
+          name: `${errorColor("⨯ No, tell agent what to do differently")}`,
+          value: "cancel",
+        },
+      ],
+      default: "execute",
+    },
+  ]);
+
+  return action === "execute";
 }

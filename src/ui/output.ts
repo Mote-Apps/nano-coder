@@ -72,12 +72,13 @@ export function displayAssistantMessage(content: string, model?: string): void {
 }
 
 export function displayToolCall(toolCall: ToolCall, result: ToolResult): void {
-  console.log(`\n${toolColor(`🔧 ${toolCall.function.name}`)}`);
-  console.log(secondaryColor("─".repeat(50)));
-
-  console.log(toolColor("Arguments:"));
+  console.log();
   console.log(
-    secondaryColor(JSON.stringify(toolCall.function.arguments, null, 2))
+    `${toolColor(
+      `⚒ ${toolCall.function.name}(${JSON.stringify(
+        toolCall.function.arguments
+      )})`
+    )}`
   );
   console.log(); // Add spacing after tool calls
 }

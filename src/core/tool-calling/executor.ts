@@ -1,36 +1,14 @@
-import inquirer from "inquirer";
 import { processToolUse } from "../message-handler.js";
 import { displayToolCall } from "../../ui/output.js";
+import { promptToolApproval } from "../../ui/input.js";
 import type { ToolCall, ToolResult } from "../../types/index.js";
-import { errorColor, successColor } from "../../ui/colors.js";
+import { errorColor } from "../../ui/colors.js";
 
 export interface ToolExecutionResult {
   executed: boolean;
   results: ToolResult[];
 }
 
-export async function promptToolApproval(toolCall: ToolCall): Promise<boolean> {
-  const { action } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "action",
-      message: `⚒ ${toolCall.function.name}(${JSON.stringify(
-        toolCall.function.arguments,
-        null
-      )})`,
-      choices: [
-        { name: `${successColor("✓ Yes, execute")}`, value: "execute" },
-        {
-          name: `${errorColor("⨯ No, tell agent what to do differently")}`,
-          value: "cancel",
-        },
-      ],
-      default: "execute",
-    },
-  ]);
-
-  return action === "execute";
-}
 
 export async function executeToolCall(
   toolCall: ToolCall
