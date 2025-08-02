@@ -22,7 +22,7 @@ export function displayWelcome(): void {
   );
   console.log(
     primaryColor("│") +
-      whiteColor(" ✻ Welcome to nano-coder!                                ") +
+      whiteColor(" ✻ Welcome to NanoCoder!                                ") +
       primaryColor("│")
   );
   console.log(

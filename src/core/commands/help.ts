@@ -28,7 +28,7 @@ export const helpCommand: Command = {
 
     console.log(`
 ${primaryColor(
-  "Nano Coder " +
+  "NanoCoder " +
     packageJson.version +
     " - AI-Powered Code Assistant with Ollama."
 )}

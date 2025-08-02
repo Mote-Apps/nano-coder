@@ -1,11 +1,8 @@
 {
-  "name": "nano-claude-code",
+  "name": "nanocoder",
   "main": "dist/index.js",
   "type": "module",
   "version": "0.1.0",
-  "bin": {
-    "nano-ollama-code": "./dist/index.js"
-  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
