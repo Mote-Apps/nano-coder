@@ -1,14 +1,18 @@
 import type { Message, Tool, LLMClient } from "../types/index.js";
+import { errorColor } from "../ui/colors.js";
 
 export class OpenRouterClient implements LLMClient {
   private apiKey: string;
   private currentModel: string;
   private availableModels: string[];
+  private modelInfo: Map<string, any> = new Map();
 
   constructor(apiKey: string, models: string[]) {
     this.apiKey = apiKey;
     this.availableModels = models;
     this.currentModel = models[0]!;
+    // Pre-fetch model info for all available models
+    this.fetchModelInfo();
   }
 
   setModel(model: string): void {
@@ -17,6 +21,36 @@ export class OpenRouterClient implements LLMClient {
 
   getCurrentModel(): string {
     return this.currentModel;
+  }
+
+  private async fetchModelInfo(): Promise<void> {
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/models", {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data: any = await response.json();
+        for (const model of data.data) {
+          this.modelInfo.set(model.id, model);
+        }
+      }
+    } catch (error) {
+      console.warn("Failed to fetch OpenRouter model info:", error);
+    }
+  }
+
+  getContextSize(): number {
+    const modelData = this.modelInfo.get(this.currentModel);
+    if (modelData && modelData.context_length) {
+      return modelData.context_length;
+    }
+
+    // Fallback to reasonable default
+    return 32768;
   }
 
   async getAvailableModels(): Promise<string[]> {
@@ -32,37 +66,37 @@ export class OpenRouterClient implements LLMClient {
           role: msg.role,
           content: msg.content || "",
         };
-        
+
         // Include tool_calls for assistant messages
         if (msg.role === "assistant" && msg.tool_calls) {
           cleanMsg.tool_calls = msg.tool_calls.map((toolCall: any) => ({
             ...toolCall,
             function: {
               ...toolCall.function,
-              arguments: typeof toolCall.function.arguments === 'string' 
-                ? toolCall.function.arguments 
-                : JSON.stringify(toolCall.function.arguments)
-            }
+              arguments:
+                typeof toolCall.function.arguments === "string"
+                  ? toolCall.function.arguments
+                  : JSON.stringify(toolCall.function.arguments),
+            },
           }));
         }
-        
+
         // Only include tool_call_id for tool messages
         if (msg.role === "tool" && msg.tool_call_id) {
           cleanMsg.tool_call_id = msg.tool_call_id;
         }
-        
+
         // Only include name for tool messages
         if (msg.role === "tool" && msg.name) {
           cleanMsg.name = msg.name;
         }
-        
+
         return cleanMsg;
       }),
       tools: tools.length > 0 ? tools : undefined,
       max_tokens: 4096,
       stream: false,
     };
-
 
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -78,9 +112,20 @@ export class OpenRouterClient implements LLMClient {
     );
 
     if (!response.ok) {
-      throw new Error(
-        `OpenRouter API error: ${response.status} ${response.statusText}`
-      );
+      let errorMessage = `OpenRouter API error: ${response.status} ${response.statusText}`;
+
+      // Try to get more detailed error information
+      try {
+        const errorData = (await response.json()) as any;
+        if (errorData.error?.message) {
+          errorMessage += ` - ${errorData.error.message}`;
+        }
+      } catch {
+        // If we can't parse the error response, use the basic message
+      }
+
+      console.log(errorColor(`\n❌ ${errorMessage}\n`));
+      return null; // Return null to indicate error
     }
 
     return await response.json();
@@ -95,37 +140,37 @@ export class OpenRouterClient implements LLMClient {
           role: msg.role,
           content: msg.content || "",
         };
-        
+
         // Include tool_calls for assistant messages
         if (msg.role === "assistant" && msg.tool_calls) {
           cleanMsg.tool_calls = msg.tool_calls.map((toolCall: any) => ({
             ...toolCall,
             function: {
               ...toolCall.function,
-              arguments: typeof toolCall.function.arguments === 'string' 
-                ? toolCall.function.arguments 
-                : JSON.stringify(toolCall.function.arguments)
-            }
+              arguments:
+                typeof toolCall.function.arguments === "string"
+                  ? toolCall.function.arguments
+                  : JSON.stringify(toolCall.function.arguments),
+            },
           }));
         }
-        
+
         // Only include tool_call_id for tool messages
         if (msg.role === "tool" && msg.tool_call_id) {
           cleanMsg.tool_call_id = msg.tool_call_id;
         }
-        
+
         // Only include name for tool messages
         if (msg.role === "tool" && msg.name) {
           cleanMsg.name = msg.name;
         }
-        
+
         return cleanMsg;
       }),
       tools: tools.length > 0 ? tools : undefined,
       max_tokens: 4096,
       stream: true,
     };
-
 
     const response = await fetch(
       "https://openrouter.ai/api/v1/chat/completions",
@@ -141,14 +186,26 @@ export class OpenRouterClient implements LLMClient {
     );
 
     if (!response.ok) {
-      throw new Error(
-        `OpenRouter API error: ${response.status} ${response.statusText}`
-      );
+      let errorMessage = `OpenRouter API error: ${response.status} ${response.statusText}`;
+
+      // Try to get more detailed error information
+      try {
+        const errorData = (await response.json()) as any;
+        if (errorData.error?.message) {
+          errorMessage += ` - ${errorData.error.message}`;
+        }
+      } catch {
+        // If we can't parse the error response, use the basic message
+      }
+
+      console.log(errorColor(`\n⨯ ${errorMessage}\n`));
+      return; // Gracefully exit the generator without yielding any chunks
     }
 
     const reader = response.body?.getReader();
     if (!reader) {
-      throw new Error("Failed to get response reader");
+      console.log(errorColor(`\n⨯ Failed to get response reader\n`));
+      return;
     }
 
     const decoder = new TextDecoder();
@@ -172,14 +229,16 @@ export class OpenRouterClient implements LLMClient {
               // Yield final result with accumulated tool calls
               if (accumulatedToolCalls.length > 0) {
                 // Parse arguments as JSON objects
-                const processedToolCalls = accumulatedToolCalls.map(tool => ({
+                const processedToolCalls = accumulatedToolCalls.map((tool) => ({
                   ...tool,
                   function: {
                     ...tool.function,
-                    arguments: tool.function.arguments ? JSON.parse(tool.function.arguments) : {}
-                  }
+                    arguments: tool.function.arguments
+                      ? JSON.parse(tool.function.arguments)
+                      : {},
+                  },
                 }));
-                
+
                 yield {
                   message: {
                     content: accumulatedContent,
@@ -195,7 +254,7 @@ export class OpenRouterClient implements LLMClient {
 
             try {
               const chunk = JSON.parse(data);
-              
+
               // Accumulate content
               if (chunk.choices?.[0]?.delta?.content) {
                 accumulatedContent += chunk.choices[0].delta.content;
@@ -217,18 +276,20 @@ export class OpenRouterClient implements LLMClient {
                       accumulatedToolCalls.push({
                         id: "",
                         type: "function",
-                        function: { name: "", arguments: "" }
+                        function: { name: "", arguments: "" },
                       });
                     }
-                    
+
                     const currentTool = accumulatedToolCalls[deltaTool.index];
-                    
+
                     // Accumulate the tool call data
                     if (deltaTool.id) currentTool.id = deltaTool.id;
                     if (deltaTool.type) currentTool.type = deltaTool.type;
-                    if (deltaTool.function?.name) currentTool.function.name = deltaTool.function.name;
+                    if (deltaTool.function?.name)
+                      currentTool.function.name = deltaTool.function.name;
                     if (deltaTool.function?.arguments) {
-                      currentTool.function.arguments += deltaTool.function.arguments;
+                      currentTool.function.arguments +=
+                        deltaTool.function.arguments;
                     }
                   }
                 }

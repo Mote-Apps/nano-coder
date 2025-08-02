@@ -19,6 +19,10 @@ export class OllamaClient implements LLMClient {
     return this.currentModel;
   }
 
+  getContextSize(): number {
+    return ollamaConfig.contextSize;
+  }
+
   async getAvailableModels(): Promise<string[]> {
     try {
       const response = await this.ollama.list();

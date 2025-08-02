@@ -39,6 +39,7 @@ export type ToolHandler = (input: any) => Promise<string>;
 export interface LLMClient {
   getCurrentModel(): string;
   setModel(model: string): void;
+  getContextSize(): number;
   getAvailableModels(): Promise<string[]>;
   chat(messages: Message[], tools: Tool[]): Promise<any>;
   chatStream(messages: Message[], tools: Tool[]): AsyncIterable<any>;

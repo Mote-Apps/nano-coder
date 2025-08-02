@@ -17,10 +17,7 @@ function loadAppConfig(): AppConfig {
         };
       }
     } catch (error) {
-      console.warn(
-        "Failed to parse agents.config.json:",
-        error
-      );
+      console.warn("Failed to parse agents.config.json:", error);
     }
   }
 

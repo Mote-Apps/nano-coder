@@ -22,7 +22,7 @@ export function displayWelcome(): void {
   );
   console.log(
     primaryColor("│") +
-      whiteColor(" ✻ Welcome to NanoCoder!                                ") +
+      whiteColor(" ✻ Welcome to NanoCoder!                                 ") +
       primaryColor("│")
   );
   console.log(
@@ -73,13 +73,7 @@ export function displayAssistantMessage(content: string, model?: string): void {
 
 export function displayToolCall(toolCall: ToolCall, result: ToolResult): void {
   console.log();
-  console.log(
-    `${toolColor(
-      `⚒ ${toolCall.function.name}(${JSON.stringify(
-        toolCall.function.arguments
-      )})`
-    )}`
-  );
+  console.log(`${toolColor(`⚒ ${toolCall.function.name} executed`)}`);
   console.log(); // Add spacing after tool calls
 }
 
