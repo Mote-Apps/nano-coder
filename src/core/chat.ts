@@ -91,6 +91,7 @@ export class ChatSession {
         tool_calls: toolCalls,
       });
 
+
       if (fullContent) {
         displayAssistantMessage(fullContent, this.currentModel);
       }
