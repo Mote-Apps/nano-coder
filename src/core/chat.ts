@@ -1,4 +1,5 @@
-import { OllamaClient } from "./ollama-client.js";
+import { createLLMClient } from "./client-factory.js";
+import type { LLMClient, ProviderType } from "../types/index.js";
 import { getUserInput } from "../ui/input.js";
 import {
   parseToolCallsFromContent,
@@ -11,7 +12,7 @@ import {
   clearThinkingIndicator,
 } from "../ui/output.js";
 import { tools, read_file } from "../tools/index.js";
-import { promptPath, ollamaConfig } from "../config/index.js";
+import { promptPath } from "../config/index.js";
 import { commandRegistry } from "./commands.js";
 import { isCommandInput, parseInput } from "./command-parser.js";
 import type { Message } from "../types/index.js";
@@ -21,6 +22,7 @@ import {
   helpCommand,
   clearCommand,
   modelCommand,
+  providerCommand,
 } from "./commands/index.js";
 
 let currentChatSession: ChatSession | null = null;
@@ -30,20 +32,23 @@ export function getCurrentChatSession(): ChatSession | null {
 }
 
 export class ChatSession {
-  private client: OllamaClient;
+  private client: LLMClient;
   private messages: Message[] = [];
   private currentModel: string;
-  private modelContextSize: number = ollamaConfig.contextSize;
+  private currentProvider: ProviderType = "ollama";
+  private modelContextSize: number = 4000;
 
   constructor() {
-    this.client = new OllamaClient();
-    this.currentModel = this.client.getCurrentModel();
+    // Client will be initialized in start() method
+    this.client = null as any; // Temporary until async initialization
+    this.currentModel = "";
     currentChatSession = this;
     commandRegistry.register([
       helpCommand,
       exitCommand,
       clearCommand,
       modelCommand,
+      providerCommand,
     ]);
   }
 
@@ -61,7 +66,40 @@ export class ChatSession {
     this.client.setModel(model);
   }
 
+  async getAvailableModels(): Promise<string[]> {
+    return await this.client.getAvailableModels();
+  }
+
+  getCurrentProvider(): ProviderType {
+    return this.currentProvider;
+  }
+
+  async setProvider(provider: ProviderType): Promise<void> {
+    if (provider !== this.currentProvider) {
+      // This will throw if provider requirements aren't met (e.g., missing API key)
+      const newClient = await createLLMClient(provider);
+      
+      this.currentProvider = provider;
+      this.client = newClient;
+      this.currentModel = this.client.getCurrentModel();
+      await this.clearHistory();
+    }
+  }
+
+  getAvailableProviders(): ProviderType[] {
+    return ["ollama", "openrouter"];
+  }
+
   async start(): Promise<void> {
+    // Initialize client on startup
+    try {
+      this.client = await createLLMClient(this.currentProvider);
+      this.currentModel = this.client.getCurrentModel();
+    } catch (error) {
+      console.error(`Failed to initialize ${this.currentProvider} provider:`, error);
+      process.exit(1);
+    }
+
     while (true) {
       const userInput = await getUserInput();
 

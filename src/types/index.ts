@@ -36,10 +36,20 @@ export interface Tool {
 
 export type ToolHandler = (input: any) => Promise<string>;
 
-export interface OllamaConfig {
-  model: string;
-  maxTokens: number;
-  contextSize: number;
+export interface LLMClient {
+  getCurrentModel(): string;
+  setModel(model: string): void;
+  getAvailableModels(): Promise<string[]>;
+  chat(messages: Message[], tools: Tool[]): Promise<any>;
+  chatStream(messages: Message[], tools: Tool[]): AsyncIterable<any>;
+  clearContext(): Promise<void>;
+}
+
+export type ProviderType = "ollama" | "openrouter";
+
+export interface AppConfig {
+  openRouterApiKey?: string;
+  openRouterModels?: string[];
 }
 
 export interface Colors {

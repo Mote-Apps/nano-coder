@@ -129,3 +129,6 @@ Thumbs.db
 # Package manager lock files (keep pnpm-lock.yaml)
 package-lock.json
 yarn.lock
+
+# configuration
+agents.config.json

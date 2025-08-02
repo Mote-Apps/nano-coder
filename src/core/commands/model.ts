@@ -1,12 +1,11 @@
 import { Command } from "../../types/index.js";
-import { Ollama } from "ollama";
 import inquirer from "inquirer";
-import { primaryColor, successColor, errorColor } from "../../ui/colors.js";
+import { successColor, errorColor } from "../../ui/colors.js";
 import { getCurrentChatSession } from "../chat.js";
 
 export const modelCommand: Command = {
   name: "model",
-  description: "Select the current Ollama model",
+  description: "Select the current model",
   handler: async (args: string[]) => {
     const chatSession = getCurrentChatSession();
     if (!chatSession) {
@@ -14,25 +13,21 @@ export const modelCommand: Command = {
       return;
     }
 
-    const ollama = new Ollama();
-
     try {
-      // Get list of available models
-      const models = await ollama.list();
+      // Get list of available models from the current client
+      const availableModels = await chatSession.getAvailableModels();
 
-      if (models.models.length === 0) {
+      if (availableModels.length === 0) {
         console.log(
-          errorColor("No Ollama models found. Please install a model first.")
+          errorColor("No models available. Please check your configuration.")
         );
         return;
       }
 
       const currentModel = chatSession.getCurrentModel();
-      const modelChoices = models.models.map((model) => ({
-        name: `${model.name} (${
-          Math.round((model.size / 1024 / 1024 / 1024) * 100) / 100
-        }GB)${model.name === currentModel ? " (current)" : ""}`,
-        value: model.name,
+      const modelChoices = availableModels.map((model) => ({
+        name: `${model}${model === currentModel ? " (current)" : ""}`,
+        value: model,
       }));
 
       console.log();
@@ -55,8 +50,8 @@ export const modelCommand: Command = {
       }
       console.log();
     } catch (error) {
-      console.log(errorColor(`Error accessing Ollama: ${error}`));
-      console.log("Make sure Ollama is running and accessible.");
+      console.log(errorColor(`Error accessing models: ${error}`));
+      console.log("Make sure your provider is properly configured.");
     }
   },
 };
