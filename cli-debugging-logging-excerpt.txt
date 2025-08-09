@@ -1,0 +1,21 @@
+025-08-08 13:25:31.170 | DEBUG    | basic_memory.repository.repository:update:278 - Updated Entity: 70
+2025-08-08 13:25:31.174 | DEBUG    | basic_memory.repository.search_repository:index_item:553 - indexed row SearchIndexRow(project_id=2, id=70, type='entity', file_path='src/core/chat.ts', created_at=datetime.datetime(2025, 8, 8, 12, 22, 14, 833899), updated_at=datetime.datetime(2025, 8, 8, 12, 22, 14, 825627), permalink=None, metadata={'entity_type': 'file'}, score=None, title='chat.ts', content_stems=None, content_snippet=None, entity_id=70, category=None, from_id=None, to_id=None, relation_type=None)
+2025-08-08 13:25:31.175 | DEBUG    | basic_memory.sync.sync_service:sync_file:269 - File sync completed, path=src/core/chat.ts, entity_id=70, checksum=6c2642d4
+2025-08-08 13:25:31.175 | INFO     | basic_memory.sync.watch_service:handle_changes:357 - modified: src/core/chat.ts
+2025-08-08 13:25:31.175 | DEBUG    | basic_memory.sync.watch_service:handle_changes:362 - Modified file processed, path=src/core/chat.ts entity_id=70 checksum=6c2642d4053329b03451f618c4b86da40e8224fb0ff74b1ffe591288136ad0ce
+2025-08-08 13:25:31.175 | INFO     | basic_memory.sync.watch_service:handle_changes:384 - changes: 2
+2025-08-08 13:25:31.175 | INFO     | basic_memory.sync.watch_service:handle_changes:390 - File change processing completed, processed_files=2, total_synced_files=10, duration_ms=13
+2025-08-08 13:25:44.401 | INFO     | basic_memory.sync.watch_service:handle_changes:189 - Processing project: current-project changes, change_count=3, directory=/Users/jasonschulz/Developer/nanocoder
+2025-08-08 13:25:44.401 | DEBUG    | basic_memory.sync.watch_service:handle_changes:213 - Grouped file changes, added=2, deleted=1, modified=0
+2025-08-08 13:25:44.405 | DEBUG    | basic_memory.sync.watch_service:handle_changes:221 - Existing file will be processed as modified, path=src/core/chat.ts
+2025-08-08 13:25:44.405 | DEBUG    | basic_memory.sync.watch_service:handle_changes:238 - Skipping non-existent or directory path
+2025-08-08 13:25:44.405 | DEBUG    | basic_memory.sync.watch_service:handle_changes:340 - Processing modified file: path=src/core/chat.ts
+2025-08-08 13:25:44.405 | DEBUG    | basic_memory.sync.sync_service:sync_file:257 - Syncing file path=src/core/chat.ts is_new=False is_markdown=False
+2025-08-08 13:25:44.409 | DEBUG    | basic_memory.repository.repository:update:258 - Updating Entity 70 with data: {'file_path': 'src/core/chat.ts', 'checksum': 'd01320c167fb9c5acfa1b8aa3aaf64eff437e32929fd093685870e4c207ee48b'}
+2025-08-08 13:25:44.411 | DEBUG    | basic_memory.repository.repository:update:278 - Updated Entity: 70
+2025-08-08 13:25:44.415 | DEBUG    | basic_memory.repository.search_repository:index_item:553 - indexed row SearchIndexRow(project_id=2, id=70, type='entity', file_path='src/core/chat.ts', created_at=datetime.datetime(2025, 8, 8, 12, 22, 14, 833899), updated_at=datetime.datetime(2025, 8, 8, 12, 22, 14, 825627), permalink=None, metadata={'entity_type': 'file'}, score=None, title='chat.ts', content_stems=None, content_snippet=None, entity_id=70, category=None, from_id=None, to_id=None, relation_type=None)
+2025-08-08 13:25:44.416 | DEBUG    | basic_memory.sync.sync_service:sync_file:269 - File sync completed, path=src/core/chat.ts, entity_id=70, checksum=d01320c1
+2025-08-08 13:25:44.416 | INFO     | basic_memory.sync.watch_service:handle_changes:357 - modified: src/core/chat.ts
+2025-08-08 13:25:44.416 | DEBUG    | basic_memory.sync.watch_service:handle_changes:362 - Modified file processed, path=src/core/chat.ts entity_id=70 checksum=d01320c167fb9c5acfa1b8aa3aaf64eff437e32929fd093685870e4c207ee48b
+2025-08-08 13:25:44.416 | INFO     | basic_memory.sync.watch_service:handle_changes:384 - changes: 2
+2025-08-08 13:25:44.416 | INFO     | basic_memory.sync.watch_service:handle_changes:390 - File change processing completed, processed_files=2, total_synced_files=12, duration_ms=15

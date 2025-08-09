@@ -1,6 +1,20 @@
 import type { ToolCall } from "../../types/index.js";
 import * as p from "@clack/prompts";
 
+/**
+ * Validates if a tool name and inner content are valid for tool call processing
+ */
+function isValidToolCall(toolName?: string, innerContent?: string): boolean {
+  return !!(toolName && innerContent);
+}
+
+/**
+ * Validates if parameter name and value are valid for processing
+ */
+function isValidParameter(paramName?: string, paramValue?: string): boolean {
+  return !!(paramName && paramValue !== undefined);
+}
+
 export function parseToolCallsFromContent(content: string): ToolCall[] {
   const extractedCalls: ToolCall[] = [];
   let trimmedContent = content.trim();
@@ -56,6 +70,96 @@ export function parseToolCallsFromContent(content: string): ToolCall[] {
       }
     } catch (e) {
       p.log.warn("Tool call failed to parse from JSON block.");
+    }
+  }
+
+  // Look for direct MCP tool calls like <create_memory_project>...<project_name>...</project_name>...</create_memory_project>
+  // This handles MCP tools that are called directly with nested parameter tags
+  const directMcpToolCallRegex = /<([a-zA-Z_][a-zA-Z0-9_]*)\s*>([\s\S]*?)<\/\1>/g;
+  let directMatch;
+  while ((directMatch = directMcpToolCallRegex.exec(content)) !== null) {
+    const [fullMatch, toolName, innerContent] = directMatch;
+    
+    // Skip if toolName or innerContent is undefined
+    if (!isValidToolCall(toolName, innerContent)) {
+      continue;
+    }
+    
+    // Skip if this is a known non-tool tag or if it contains other tool calls
+    if (toolName === 'use_mcp_tool' || toolName === 'execute_bash' || 
+        toolName === 'bash' || toolName === 'read_file' || toolName === 'write_file' ||
+        fullMatch.includes('<use_mcp_tool>') || fullMatch.includes('<execute_bash>')) {
+      continue;
+    }
+    
+    // Check if this looks like an MCP tool call with nested parameter tags
+    if (innerContent && innerContent.includes('<') && innerContent.includes('>')) {
+      try {
+        // Parse nested XML tags as parameters
+        const paramRegex = /<([^>]+)>([^<]*)<\/\1>/g;
+        let paramMatch;
+        const args: Record<string, any> = {};
+        
+        while ((paramMatch = paramRegex.exec(innerContent)) !== null) {
+          const [, paramName, paramValue] = paramMatch;
+          // Skip if paramName or paramValue is undefined
+          if (!isValidParameter(paramName, paramValue)) {
+            continue;
+          }
+          
+          // paramValue is guaranteed to be defined here due to validation
+          const trimmedValue = paramValue!.trim();
+          // Try to parse as JSON if it looks like JSON, otherwise use as string
+          if (trimmedValue.startsWith('{') || trimmedValue.startsWith('[')) {
+            try {
+              args[paramName!] = JSON.parse(trimmedValue);
+            } catch {
+              args[paramName!] = trimmedValue;
+            }
+          } else if (trimmedValue === 'true' || trimmedValue === 'false') {
+            args[paramName!] = trimmedValue === 'true';
+          } else if (!isNaN(Number(trimmedValue))) {
+            args[paramName!] = Number(trimmedValue);
+          } else {
+            args[paramName!] = trimmedValue;
+          }
+        }
+        
+        // Only add if we found parameters
+        if (Object.keys(args).length > 0) {
+          extractedCalls.push({
+            id: `call_${Date.now()}_${extractedCalls.length}`,
+            function: {
+              name: toolName!,
+              arguments: args,
+            },
+          });
+        }
+      } catch (e) {
+        p.log.warn(`Failed to parse direct MCP tool call: ${toolName}`);
+      }
+    }
+  }
+
+  // Look for MCP tool calls in the format: <use_mcp_tool>...<tool_name>...</tool_name>...<arguments>...</arguments></use_mcp_tool>
+  const mcpToolCallRegex = /<use_mcp_tool>\s*<server_name>([^<]+)<\/server_name>\s*<tool_name>([^<]+)<\/tool_name>\s*<arguments>([\s\S]*?)<\/arguments>\s*<\/use_mcp_tool>/g;
+  let mcpMatch;
+  while ((mcpMatch = mcpToolCallRegex.exec(content)) !== null) {
+    const [, serverName, toolName, argsStr] = mcpMatch;
+    try {
+      if (toolName && argsStr) {
+        // Parse the arguments JSON
+        const args = JSON.parse(argsStr.trim());
+        extractedCalls.push({
+          id: `call_${Date.now()}_${extractedCalls.length}`,
+          function: {
+            name: toolName, // Use the tool name directly, the tool manager will handle routing
+            arguments: args,
+          },
+        });
+      }
+    } catch (e) {
+      p.log.warn("MCP tool call failed to parse from XML.");
     }
   }
 
@@ -149,6 +253,22 @@ export function cleanContentFromToolCalls(
   if (toolCalls.length === 0) return content;
 
   let cleanedContent = content;
+
+  // Remove direct MCP tool calls that were successfully parsed
+  // We need to be careful to only remove the ones that were actually parsed as tool calls
+  for (const call of toolCalls) {
+    const toolName = call.function.name;
+    // Create a regex to match this specific tool call with its parameters
+    const directToolRegex = new RegExp(
+      `<${toolName}\\s*>[\\s\\S]*?<\\/${toolName}>`,
+      'g'
+    );
+    cleanedContent = cleanedContent.replace(directToolRegex, "").trim();
+  }
+
+  // Remove MCP tool calls
+  const mcpToolCallRegex = /<use_mcp_tool>\s*<server_name>[^<]+<\/server_name>\s*<tool_name>[^<]+<\/tool_name>\s*<arguments>[\s\S]*?<\/arguments>\s*<\/use_mcp_tool>/g;
+  cleanedContent = cleanedContent.replace(mcpToolCallRegex, "").trim();
 
   // Handle markdown code blocks that contain only tool calls
   const codeBlockRegex = /```(?:json)?\s*\n?([\s\S]*?)\n?```/g;

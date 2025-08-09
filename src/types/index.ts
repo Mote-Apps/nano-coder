@@ -46,11 +46,22 @@ export interface LLMClient {
   clearContext(): Promise<void>;
 }
 
-export type ProviderType = "ollama" | "openrouter";
+export type ProviderType = "ollama" | "openrouter" | "openai-compatible";
 
 export interface AppConfig {
   openRouterApiKey?: string;
   openRouterModels?: string[];
+  openAICompatible?: {
+    baseUrl: string;
+    apiKey?: string;
+    models?: string[];
+  };
+  mcpServers?: {
+    name: string;
+    command: string;
+    args?: string[];
+    env?: Record<string, string>;
+  }[];
 }
 
 export interface Colors {

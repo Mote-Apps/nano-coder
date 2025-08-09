@@ -1,0 +1,26 @@
+{
+  "nanocoder": {
+    "openRouterApiKey": "your-openrouter-api-key-here",
+    "openRouterModels": ["openai/gpt-4o-mini", "anthropic/claude-3-haiku"],
+    "openAICompatible": {
+      "baseUrl": "http://localhost:1234",
+      "apiKey": "optional-api-key-if-needed",
+      "models": ["local-model-1", "local-model-2"]
+    },
+    "mcpServers": [
+      {
+        "name": "filesystem",
+        "command": "npx",
+        "args": ["@modelcontextprotocol/server-filesystem", "/path/to/allowed/directory"]
+      },
+      {
+        "name": "github",
+        "command": "npx",
+        "args": ["@modelcontextprotocol/server-github"],
+        "env": {
+          "GITHUB_TOKEN": "your-github-token"
+        }
+      }
+    ]
+  }
+}

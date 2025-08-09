@@ -1,8 +1,10 @@
 import * as p from "@clack/prompts";
 import { commandRegistry } from "../core/commands.js";
-import { successColor, errorColor, primaryColor, blueColor } from "./colors.js";
+import { getCurrentChatSession } from "../core/chat.js";
+import { successColor, errorColor, toolColor, primaryColor, blueColor } from "./colors.js";
 import { formatToolCall } from "./tool-formatter.js";
 import type { ToolCall } from "../types/index.js";
+import { getUserInputWithAutocomplete } from "./input-with-autocomplete.js";
 import { promptHistory } from "../core/prompt-history.js";
 import { borderedContent } from "./bordered-content.js";
 
@@ -42,11 +44,25 @@ function getCommandCompletions(input: string): string[] {
   }
 
   const commandPart = input.slice(1);
-  return Array.from(commandRegistry.getAll())
+  const completions: string[] = [];
+  
+  // Get built-in command completions
+  const builtInCommands = Array.from(commandRegistry.getAll())
     .map((cmd) => cmd.name)
-    .filter((name) => name.includes(commandPart))
-    .map((cmd) => `/${cmd}`)
-    .sort();
+    .filter((name) => name.startsWith(commandPart))
+    .map((cmd) => `/${cmd}`);
+  completions.push(...builtInCommands);
+  
+  // Get custom command completions if available
+  const chatSession = getCurrentChatSession();
+  if (chatSession) {
+    const customLoader = chatSession.getCustomCommandLoader();
+    const customSuggestions = customLoader.getSuggestions(commandPart);
+    completions.push(...customSuggestions.map(cmd => `/${cmd}`));
+  }
+  
+  // Remove duplicates and sort
+  return [...new Set(completions)].sort();
 }
 
 export async function getUserInput(): Promise<string | null> {
@@ -56,13 +72,10 @@ export async function getUserInput(): Promise<string | null> {
       await promptHistory.loadHistory();
     }
 
-    const userInput = await p.text({
-      message: primaryColor("What would you like me to help with?"),
-      placeholder: getRandomPrompt(),
-    });
-
-    if (p.isCancel(userInput)) {
-      p.cancel("Operation cancelled");
+    // Use autocomplete input for better command discovery
+    const userInput = await getUserInputWithAutocomplete();
+    
+    if (userInput === null) {
       return null;
     }
 
@@ -71,41 +84,6 @@ export async function getUserInput(): Promise<string | null> {
     // Add to history if it's not empty and not a command
     if (inputValue && !inputValue.startsWith("/")) {
       promptHistory.addPrompt(inputValue);
-    }
-
-    // If user starts typing a command, show completions and let them choose
-    if (inputValue.startsWith("/") && inputValue.length > 1) {
-      const completions = getCommandCompletions(inputValue);
-      if (completions.length > 1) {
-        const selectedCommand = await p.select({
-          message: blueColor(`Available commands matching "${inputValue}":`),
-          options: [
-            { label: `Continue with: ${inputValue}`, value: inputValue },
-            ...completions.map((cmd) => ({ label: cmd, value: cmd })),
-          ],
-        });
-
-        if (p.isCancel(selectedCommand)) {
-          p.cancel("Operation cancelled");
-          return null;
-        }
-
-        inputValue = selectedCommand;
-      } else if (completions.length === 1 && completions[0] !== inputValue) {
-        const useCompletion = await p.confirm({
-          message: blueColor(`Did you mean "${completions[0]}"?`),
-          initialValue: true,
-        });
-
-        if (p.isCancel(useCompletion)) {
-          p.cancel("Operation cancelled");
-          return null;
-        }
-
-        if (useCompletion && completions[0]) {
-          inputValue = completions[0];
-        }
-      }
     }
 
     return inputValue;
